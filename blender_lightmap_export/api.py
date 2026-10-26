@@ -122,8 +122,12 @@ def export_scene(cfg: ExportConfig, objects: Optional[Iterable[bpy.types.Object]
     return run_pipeline(cfg, objects=objects, context=context, progress=progress, stages=stages)
 
 
-def apply_lightmaps(objects: Iterable[bpy.types.Object], mode: str = "PREVIEW") -> int:
-    """Switch lightmap material preview on for objects that carry lightmap metadata."""
+def apply_lightmaps(objects: Iterable[bpy.types.Object], mode: Optional[str] = "PREVIEW") -> int:
+    """Switch the lightmap display of objects that carry lightmap metadata.
+
+    ``mode``: ``PREVIEW`` (Basisfarbe × Lightmap), ``LIGHTMAP_ONLY``, ``ORIGINAL`` or
+    ``None`` to keep the current mode of each material.
+    """
     from .core import materials
     return materials.apply_from_metadata(list(objects), mode=mode)
 
@@ -138,7 +142,7 @@ def import_model(path: str, context=None) -> List[bpy.types.Object]:
     return io_import.import_file(path, context or bpy.context)
 
 
-def import_with_lightmaps(path: str, context=None, apply: bool = True, mode: str = "PREVIEW") -> Dict[str, Any]:
+def import_with_lightmaps(path: str, context=None, apply: bool = True, mode: Optional[str] = None) -> Dict[str, Any]:
     """Import a model and attach lightmaps found via sidecar, metadata or file names."""
     from .core import metadata
     return metadata.import_with_lightmaps(path, context or bpy.context, apply=apply, mode=mode)

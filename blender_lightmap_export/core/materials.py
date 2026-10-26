@@ -159,8 +159,13 @@ def _find_base_color(nt: bpy.types.ShaderNodeTree, shader_node: Optional[bpy.typ
 
 
 def bind_material(mat: bpy.types.Material, image: bpy.types.Image, uv_name: str,
-                  bake_type: str, mode: str = "PREVIEW") -> bool:
-    """Insert (or update) the lightmap preview nodes in ``mat``."""
+                  bake_type: str, mode: Optional[str] = None) -> bool:
+    """Insert (or update) the lightmap preview nodes in ``mat``.
+
+    ``mode`` None keeps the display mode of an existing binding (re-bake, re-import,
+    atlas update ...); a fresh binding starts with ``PREVIEW``. An explicit mode
+    (``PREVIEW``, ``LIGHTMAP_ONLY``, ``ORIGINAL``) always wins.
+    """
     if not mat.use_nodes or mat.node_tree is None:
         mat.use_nodes = True
     nt = mat.node_tree
@@ -203,10 +208,26 @@ def bind_material(mat: bpy.types.Material, image: bpy.types.Image, uv_name: str,
     if image.colorspace_settings.name != "Non-Color":
         image.colorspace_settings.name = "Non-Color"
     group.inputs["Lightmap Type"].default_value = BAKE_TYPE_VALUE.get(bake_type, 0.0)
-    group.inputs["Preview"].default_value = MODE_VALUE.get(mode, 1.0)
-    if "Albedo" in group.inputs:
-        group.inputs["Albedo"].default_value = MODE_ALBEDO.get(mode, 1.0)
+    if mode is None and fresh:
+        mode = "PREVIEW"
+    if mode is not None:
+        group.inputs["Preview"].default_value = MODE_VALUE.get(mode, 1.0)
+        if "Albedo" in group.inputs:
+            group.inputs["Albedo"].default_value = MODE_ALBEDO.get(mode, 1.0)
     return fresh
+
+
+def get_mode(mat: bpy.types.Material) -> Optional[str]:
+    """Current display mode of a bound material (None if not bound)."""
+    nt = mat.node_tree if mat else None
+    group = nt.nodes.get(NODE_GROUP) if nt else None
+    if group is None:
+        return None
+    if group.inputs["Preview"].default_value < 0.5:
+        return "ORIGINAL"
+    if "Albedo" in group.inputs and group.inputs["Albedo"].default_value < 0.5:
+        return "LIGHTMAP_ONLY"
+    return "PREVIEW"
 
 
 def set_mode(mat: bpy.types.Material, mode: str) -> bool:
@@ -318,8 +339,8 @@ def _materials_shared_across_images(objects_by_image: Dict[str, List[bpy.types.O
 
 
 def bind_objects(objects_by_image: Dict[str, List[bpy.types.Object]], images: Dict[str, bpy.types.Image],
-                 uv_name: str, bake_type: str, mode: str = "PREVIEW", warn=None) -> int:
-    """Bind the lightmap of every image to the materials of its objects.
+                 uv_name: str, bake_type: str, mode: Optional[str] = None, warn=None) -> int:
+    """Bind the lightmap of every image to the materials of its objects (``mode`` None = keep).
 
     Materials shared by objects that have *different* lightmaps are replaced on
     those objects by per-object copies (``<Material>_LM_<Object>``); the
@@ -372,10 +393,11 @@ def restore_objects(objects: Iterable[bpy.types.Object]) -> int:
     return count
 
 
-def apply_from_metadata(objects: Iterable[bpy.types.Object], mode: str = "PREVIEW") -> int:
+def apply_from_metadata(objects: Iterable[bpy.types.Object], mode: Optional[str] = "PREVIEW") -> int:
     """(Re)apply lightmaps from the ``BLME_lightmap`` custom property of each object.
 
-    ``mode``: PREVIEW (Basisfarbe × Lightmap), LIGHTMAP_ONLY (nur Lightmap), ORIGINAL.
+    ``mode``: PREVIEW (Basisfarbe × Lightmap), LIGHTMAP_ONLY (nur Lightmap), ORIGINAL,
+    None = vorhandenen Modus beibehalten.
     """
     from .metadata import read_object_metadata, resolve_lightmap_image
     by_image: Dict[str, List[bpy.types.Object]] = {}
@@ -405,6 +427,7 @@ def step_apply_materials(ctx: PipelineContext) -> None:
         log.info("Lightmap-Vorschau deaktiviert, Materialien bleiben unverändert")
         return
     by_image = {name: [bpy.data.objects[n] for n in names] for name, names in ctx.image_objects.items()}
-    n = bind_objects(by_image, ctx.images, ctx.cfg.uv.uv_name, ctx.cfg.bake.type, "PREVIEW", warn=ctx.warn)
+    # mode None: a material that already shows "Nur Lightmap" or "Original" keeps that setting
+    n = bind_objects(by_image, ctx.images, ctx.cfg.uv.uv_name, ctx.cfg.bake.type, None, warn=ctx.warn)
     ctx.extra["bound_materials"] = n
     log.info("Lightmap-Vorschau auf %d Material-Slots angewendet", n)

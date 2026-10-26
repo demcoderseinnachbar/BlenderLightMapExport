@@ -53,7 +53,8 @@ class BLME_PT_main(BLME_PT_base, bpy.types.Panel):
             op.mode = "EXPORT"
             sel = [o for o in context.selected_objects if o.type == "MESH"]
             if s.export_scope == "SELECTED" and not sel:
-                layout.label(text="Keine Mesh-Objekte ausgewählt", icon="ERROR")
+                n = len([o for o in context.scene.objects if o.type == "MESH"])
+                layout.label(text=f"Keine Auswahl: alle {n} Mesh-Objekte der Szene", icon="INFO")
             elif s.export_scope == "SELECTED":
                 layout.label(text=f"{len(sel)} Mesh-Objekt(e) ausgewählt", icon="MESH_DATA")
 

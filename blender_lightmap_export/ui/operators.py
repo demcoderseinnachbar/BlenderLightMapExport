@@ -40,6 +40,13 @@ def _settings(context):
     return context.scene.blme
 
 
+def _visible(obj) -> bool:
+    try:
+        return obj.visible_get()
+    except Exception:
+        return not obj.hide_viewport
+
+
 def _store_result(settings, result, error: str = ""):
     settings.last_summary = result.summary() if result else ""
     settings.last_files = "\n".join(result.exported_files + [lm.file_path for lm in result.lightmaps]) if result else ""
@@ -117,8 +124,20 @@ class BLME_OT_run(bpy.types.Operator):
         if cfg.export.scope == "SELECTED":
             objects = [o for o in context.selected_objects if o.type == "MESH"]
             if not objects:
-                self.report({"ERROR"}, "Keine Mesh-Objekte ausgewählt")
-                return None
+                # nothing selected: process (and select) every visible mesh object of the scene
+                objects = [o for o in context.scene.objects if o.type == "MESH" and _visible(o)]
+                if not objects:
+                    self.report({"ERROR"}, "Keine Mesh-Objekte in der Szene")
+                    return None
+                for o in context.selected_objects:
+                    o.select_set(False)
+                for o in objects:
+                    try:
+                        o.select_set(True)
+                    except RuntimeError:
+                        pass
+                context.view_layer.objects.active = objects[0]
+                self.report({"INFO"}, f"Keine Auswahl: alle {len(objects)} Mesh-Objekte der Szene werden verarbeitet")
         if self.mode == "EXPORT":
             if not any(metadata.read_object_metadata(o) for o in (objects or context.scene.objects)):
                 self.report({"ERROR"}, "Keine gebackenen Lightmaps gefunden, bitte zuerst backen")

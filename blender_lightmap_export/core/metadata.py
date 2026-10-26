@@ -253,7 +253,7 @@ def resolve_lightmap_image(meta: Dict[str, Any], obj: bpy.types.Object, model_di
 # --- import with lightmaps ---------------------------------------------------------------
 
 def attach_lightmaps(objects: List[bpy.types.Object], model_path: str, sidecar: Optional[Dict[str, Any]] = None,
-                     apply: bool = True, mode: str = "PREVIEW") -> Dict[str, Any]:
+                     apply: bool = True, mode: Optional[str] = None) -> Dict[str, Any]:
     """Attach lightmaps to ``objects`` using sidecar → custom props → file names."""
     from . import materials
     model_dir = os.path.dirname(os.path.abspath(model_path))
@@ -342,7 +342,8 @@ def _match_sidecar_entry(entries: Dict[str, Any], obj: bpy.types.Object) -> Opti
     return None
 
 
-def import_with_lightmaps(path: str, context: bpy.types.Context, apply: bool = True, mode: str = "PREVIEW") -> Dict[str, Any]:
+def import_with_lightmaps(path: str, context: bpy.types.Context, apply: bool = True,
+                          mode: Optional[str] = None) -> Dict[str, Any]:
     from . import io_import
     objects = io_import.import_file(path, context)
     report = attach_lightmaps(objects, path, apply=apply, mode=mode)

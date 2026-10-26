@@ -93,9 +93,21 @@ class UITests(BlenderTestCase):
         self.assertIn("DoesNotExist", s.last_error)
         self.assertEqual(bpy.context.mode, "OBJECT")
 
-    def test_run_operator_requires_selection(self):
-        gen.cube()
+    def test_run_operator_without_selection_uses_whole_scene(self):
+        objs = gen.row()
         bpy.ops.object.select_all(action="DESELECT")
+        s = bpy.context.scene.blme
+        s.output_dir = self.tmp
+        s.export_scope = "SELECTED"
+        s.export_format = "NONE"
+        s.resolution = "256"
+        s.samples = 4
+        s.denoise = False
+        self.assertEqual(bpy.ops.blme.run(mode="BAKE"), {"FINISHED"})
+        self.assertIn("Lightmaps: 4", s.last_summary)
+        self.assertTrue(all(o.select_get() for o in objs), "Objekte wurden nicht selektiert")
+
+    def test_run_operator_without_any_mesh(self):
         s = bpy.context.scene.blme
         s.output_dir = self.tmp
         s.export_scope = "SELECTED"

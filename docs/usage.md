@@ -17,6 +17,8 @@
 
 Buttons: **Bake** (UVs, Bake, Lightmap-Datei, Vorschau), **Bake & Export**, **Nur Export** (nutzt bereits gebackene Lightmaps).
 
+Bei Umfang „Auswahl“ gilt: Ist nichts ausgewählt, werden alle sichtbaren Mesh-Objekte der Szene selektiert und verarbeitet (das Panel zeigt das vorher an). Der pro Material gewählte Anzeigemodus (Nur Lightmap, Lightmap × Materialfarbe, Original) bleibt bei erneutem Bake, Atlas-Bake, Export und Reimport erhalten; nur neu gebundene Materialien starten mit „Lightmap × Materialfarbe“.
+
 **Sichtbarkeit:** Die Lightmap-Vorschau ist eine Material-Node-Schaltung. Blender zeigt sie nur im Viewport-Shading **Material Preview** oder **Rendered**, nicht in **Solid**. Nach einem erfolgreichen Bake schaltet das Add-on 3D-Viewports, die auf Solid stehen, automatisch auf Material Preview um (abschaltbar in den Preferences); das Status-Panel weist darauf hin und bietet den Button *Viewport: Material Preview*.
 
 Während eines Laufs zeigt das Panel einen Fortschrittsbalken mit dem aktuellen Schritt. Bei aktivem Hintergrund-Bake erscheint Blenders Bake-Fortschritt in der Statusleiste; `Esc` im 3D-Viewport bricht ab. Nach dem Lauf stehen Zusammenfassung, Warnungen und Dateien im Unterpanel **Status und Ergebnis**.

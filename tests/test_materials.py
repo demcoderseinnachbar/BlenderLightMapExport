@@ -141,6 +141,29 @@ class MaterialTests(BlenderTestCase):
         api.bake_lightmaps(cfg, objects=[obj])
         self.assertEqual(sum(1 for n in mat.node_tree.nodes if n.name.startswith("BLME_")), 3)
 
+    def test_rebake_keeps_display_mode(self):
+        """A re-bake (or any other action) must not reset the per-material display mode."""
+        objs = gen.row()
+        cfg = quick_config(self.tmp)
+        api.bake_lightmaps(cfg, objects=objs)
+        mats = [o.material_slots[0].material for o in objs]
+        self.assertEqual([materials.get_mode(m) for m in mats], ["PREVIEW"] * 4)
+        api.apply_lightmaps([objs[0]], mode="LIGHTMAP_ONLY")
+        api.apply_lightmaps([objs[1]], mode="ORIGINAL")
+        cfg.output_dir = self.out("second")
+        api.bake_lightmaps(cfg, objects=objs)
+        self.assertEqual([materials.get_mode(m) for m in mats], ["LIGHTMAP_ONLY", "ORIGINAL", "PREVIEW", "PREVIEW"])
+        # atlas re-bake and export-only run keep it as well
+        cfg.atlas.mode = "SHARED_ATLAS"
+        cfg.output_dir = self.out("atlas")
+        api.bake_lightmaps(cfg, objects=objs)
+        self.assertEqual([materials.get_mode(m) for m in mats], ["LIGHTMAP_ONLY", "ORIGINAL", "PREVIEW", "PREVIEW"])
+        cfg.export.format = "GLB"
+        api.export_scene(cfg, objects=objs)
+        self.assertEqual([materials.get_mode(m) for m in mats], ["LIGHTMAP_ONLY", "ORIGINAL", "PREVIEW", "PREVIEW"])
+        self.assertEqual(api.apply_lightmaps(objs, mode=None), 4)
+        self.assertEqual([materials.get_mode(m) for m in mats], ["LIGHTMAP_ONLY", "ORIGINAL", "PREVIEW", "PREVIEW"])
+
     def test_group_node_renders(self):
         """The preview shader must actually produce a visible image (EEVEE render of the cube)."""
         (obj,) = gen.cube()
