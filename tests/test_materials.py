@@ -96,7 +96,8 @@ class MaterialTests(BlenderTestCase):
         api.apply_lightmaps([obj], mode="LIGHTMAP_ONLY")
         only = peak()
         self.assertGreater(only, 0.05, "Nur-Lightmap-Modus zeigt die Lightmap nicht")
-        self.assertGreater(only, with_colour * 3.0, (only, with_colour))
+        # display-space values (sRGB): 0.1 linear base colour appears as ~0.35, so a factor 1.5 is a safe margin
+        self.assertGreater(only, with_colour * 1.5, (only, with_colour))
 
     def test_old_group_is_upgraded(self):
         ng = bpy.data.node_groups.new(materials.GROUP_NAME, "ShaderNodeTree")
