@@ -9,11 +9,11 @@
 
 ## Extension installieren (Blender-Oberfläche)
 
-1. ZIP erzeugen oder aus `build/` nehmen:
+1. ZIP aus `dist/` nehmen oder neu bauen:
    ```bat
-   "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python scripts\build_extension.py -- --verify
+   build_extension.bat
    ```
-   Ergebnis: `build\blender_lightmap_export-0.1.0.zip`. Mit `--verify` wird die ZIP zusätzlich in Blender installiert, aktiviert, geprüft und wieder entfernt.
+   Ergebnis: `dist\blender_lightmap_export-0.1.0.zip`. Die Batch-Datei baut die ZIP, installiert sie in Blender und prüft Panel, Operatoren und glTF-Hook. War die Extension bereits installiert, bleibt die neue Version installiert; so lässt sich eine laufende Installation aktualisieren (Blender dabei geschlossen halten). Andernfalls wird sie wieder entfernt. `build_extension.bat --no-verify` baut nur die ZIP.
 2. Blender öffnen: *Edit > Preferences > Get Extensions*, oben rechts das Dropdown-Menü, *Install from Disk…*, die ZIP auswählen.
 3. Die Extension erscheint unter *Add-ons* als **Lightmap Exporter** und ist aktiviert.
 4. Im 3D-Viewport die Sidebar mit `N` öffnen, Reiter **Lightmap Exporter**.

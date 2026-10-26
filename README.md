@@ -79,5 +79,6 @@ tests/                     unittest-Suite (läuft in Blender)
 docs/                      Dokumentation
 start_export.bat           Batch-Export
 run_tests.bat              Tests
+build_extension.bat        Extension-ZIP bauen (und installierte Version aktualisieren)
 config.example.json        Beispielkonfiguration
 ```

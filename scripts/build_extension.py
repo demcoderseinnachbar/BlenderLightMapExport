@@ -39,10 +39,26 @@ def build(out_dir: str) -> str:
     return os.path.join(out_dir, zips[-1])
 
 
-def verify(zip_path: str) -> None:
+def is_installed() -> bool:
     import bpy
     module = f"bl_ext.user_default.{EXT_ID}"
-    print("[build_extension] installiere", zip_path)
+    if module in bpy.context.preferences.addons.keys():
+        return True
+    ext_dir = os.path.join(bpy.utils.user_resource("EXTENSIONS"), "user_default", EXT_ID)
+    return os.path.isdir(ext_dir)
+
+
+def verify(zip_path: str) -> None:
+    """Install the ZIP, check registration and glTF hooks.
+
+    If the extension was already installed before, the new version stays
+    installed and enabled (the build updates the installation); otherwise it
+    is removed again afterwards.
+    """
+    import bpy
+    module = f"bl_ext.user_default.{EXT_ID}"
+    was_installed = is_installed()
+    print("[build_extension] installiere", zip_path, "(vorher installiert:", was_installed, ")")
     bpy.ops.extensions.package_install_files(filepath=zip_path, repo="user_default", enable_on_install=True)
     import addon_utils
     enabled = any(m.__name__ == module for m in addon_utils.modules() if addon_utils.check(m.__name__)[1])
@@ -58,10 +74,16 @@ def verify(zip_path: str) -> None:
         prefs = bpy.context.preferences.addons.get(module)
         assert prefs is not None and prefs.preferences is not None, "Preferences nicht verfügbar"
         print("[build_extension] Extension geladen als", module, "(enabled:", enabled, ")")
-    finally:
+    except Exception:
         uninstall()
+        raise
+    if was_installed:
+        bpy.ops.wm.save_userpref()
+        print("[build_extension] Verifikation erfolgreich, installierte Extension auf die neue Version aktualisiert")
+        return
+    uninstall()
     assert not hasattr(bpy.types, "BLME_PT_main"), "Panel nach Deaktivierung noch registriert"
-    print("[build_extension] Verifikation erfolgreich, Extension wieder entfernt")
+    print("[build_extension] Verifikation erfolgreich, Extension wieder entfernt (war vorher nicht installiert)")
 
 
 def uninstall() -> None:
