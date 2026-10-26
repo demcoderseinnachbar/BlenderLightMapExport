@@ -238,6 +238,19 @@ def bypassed(mat: bpy.types.Material):
         nt.links.new(group.outputs[0], out.inputs["Surface"])
 
 
+def bypass_objects(objects: Iterable[bpy.types.Object]):
+    """Bypass preview bindings of all materials of ``objects``; returns a restore callable."""
+    stack = contextlib.ExitStack()
+    seen = set()
+    for o in objects:
+        for slot in getattr(o, "material_slots", []):
+            m = slot.material
+            if m is not None and m.name not in seen and is_bound(m):
+                seen.add(m.name)
+                stack.enter_context(bypassed(m))
+    return stack.close
+
+
 @contextlib.contextmanager
 def original_materials(objects: Iterable[bpy.types.Object]):
     """Context manager: all materials of ``objects`` show their original graph."""

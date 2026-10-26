@@ -246,6 +246,28 @@ def step_prepare_bake_targets(ctx: PipelineContext) -> None:
             _prepare_material_slots(ctx, t, o, uv_name, shared)
     ctx.extra["bake_targets"] = targets
     log.info("%d Bake-Ziel(e) vorbereitet", len(targets))
+    # scene configuration + bypass of preview materials for the whole bake stage
+    from . import materials
+    from .pipeline import Step
+    configure_scene_for_bake(ctx)
+    restore = materials.bypass_objects(ctx.objects)
+    ctx.extra["bake_bypass_restore"] = restore
+    ctx.temp.add_callback(_restore_bypass, ctx)   # safety net for failures/cancels
+    return [Step(name=f"bake:{t.image_name}", label=f"Backe {t.image_name} ({len(t.objects)} Objekte)",
+                 func=_make_bake_step(t), weight=10.0 / max(1, len(targets)), stage="bake",
+                 bake_image=t.image_name) for t in targets]
+
+
+def _restore_bypass(ctx: PipelineContext) -> None:
+    restore = ctx.extra.pop("bake_bypass_restore", None)
+    if restore is not None:
+        restore()
+
+
+def _make_bake_step(target: "BakeTarget"):
+    def _step(ctx: PipelineContext) -> None:
+        bake_target(ctx, target)
+    return _step
 
 
 # --- bake execution ----------------------------------------------------------------
@@ -296,21 +318,9 @@ def configure_scene_for_bake(ctx: PipelineContext) -> None:
 
 def bake_target(ctx: PipelineContext, target: BakeTarget) -> None:
     """Bake one image (blocking). Used by the headless runner."""
-    uv_name = ctx.cfg.uv.uv_name
-    ensure_object_mode()
-    objs = _bake_objects(target)
-    for o in objs:
-        o.data.uv_layers.active = o.data.uv_layers[uv_name]
-    select_only(objs, objs[0], ctx.view_layer)
-    kwargs = bake_kwargs(ctx.cfg)
-    log.info("Backe '%s' (%d Objekte, %s, %d Samples, %dpx)", target.image_name, len(objs),
-             kwargs["type"], ctx.cfg.bake.samples, ctx.cfg.bake.resolution)
+    kwargs = prepare_bake_call(ctx, target)
     try:
-        result = bpy.ops.object.bake(
-            type=kwargs["type"], pass_filter=kwargs["pass_filter"], uv_layer=uv_name,
-            margin=int(ctx.cfg.bake.margin_px), margin_type=ctx.cfg.bake.margin_type,
-            use_clear=True, target="IMAGE_TEXTURES", save_mode="INTERNAL",
-        )
+        result = bpy.ops.object.bake(**kwargs)
     except RuntimeError as exc:
         raise LightmapExportError(f"Cycles-Bake für '{target.image_name}' fehlgeschlagen: {exc}") from exc
     if "FINISHED" not in result:
@@ -329,22 +339,39 @@ def _bake_objects(target: BakeTarget) -> List[bpy.types.Object]:
     return objs
 
 
-def step_bake_all(ctx: PipelineContext) -> None:
-    targets: List[BakeTarget] = ctx.extra.get("bake_targets", [])
-    if not targets:
+def prepare_bake_call(ctx: PipelineContext, target: BakeTarget) -> Dict[str, object]:
+    """Select the objects of ``target`` and return the keyword arguments for ``bpy.ops.object.bake``."""
+    uv_name = ctx.cfg.uv.uv_name
+    ensure_object_mode()
+    objs = _bake_objects(target)
+    for o in objs:
+        o.data.uv_layers.active = o.data.uv_layers[uv_name]
+    select_only(objs, objs[0], ctx.view_layer)
+    kwargs = bake_kwargs(ctx.cfg)
+    log.info("Backe '%s' (%d Objekte, %s, %d Samples, %dpx)", target.image_name, len(objs),
+             kwargs["type"], ctx.cfg.bake.samples, ctx.cfg.bake.resolution)
+    return dict(type=kwargs["type"], pass_filter=kwargs["pass_filter"], uv_layer=uv_name,
+                margin=int(ctx.cfg.bake.margin_px), margin_type=ctx.cfg.bake.margin_type,
+                use_clear=True, target="IMAGE_TEXTURES", save_mode="INTERNAL")
+
+
+def step_bake_finish(ctx: PipelineContext) -> None:
+    """Restore bypassed preview materials, remove bake nodes/copies and verify the images."""
+    _restore_bypass(ctx)
+    tracker = ctx.extra.get("bake_tracker")
+    if tracker is not None:
+        tracker.cleanup()
+    if not ctx.images:
         raise LightmapExportError("Keine Bake-Ziele vorhanden")
-    from . import materials
-    configure_scene_for_bake(ctx)
-    try:
-        # a previous preview binding (emission) must not be baked: use the original graphs
-        with materials.original_materials(ctx.objects):
-            for t in targets:
-                ctx.check_cancel()
-                bake_target(ctx, t)
-    finally:
-        # remove bake nodes and temporary material copies before the preview is applied
-        ctx.extra["bake_tracker"].cleanup()
     verify_bakes(ctx)
+
+
+def step_bake_all(ctx: PipelineContext) -> None:
+    """Blocking convenience: bake every prepared target, then finish."""
+    for t in ctx.extra.get("bake_targets", []):
+        ctx.check_cancel()
+        bake_target(ctx, t)
+    step_bake_finish(ctx)
 
 
 def verify_bakes(ctx: PipelineContext) -> None:

@@ -163,7 +163,7 @@ class PipelineContext:
 class Step:
     name: str
     label: str
-    func: Callable[[PipelineContext], None]
+    func: Callable[[PipelineContext], Any]   # may return a list of Steps to insert after itself
     weight: float = 1.0
     stage: str = ""
     bake_image: Optional[str] = None   # set for bake steps (modal runner needs it)
@@ -201,9 +201,9 @@ def build_steps(ctx: PipelineContext, stages: Optional[List[str]] = None) -> Lis
     if cfg.uv.validate:
         add("uv", "uv_validate", "UVs prüfen", uv.step_validate_uvs, 1.0)
 
+    # step_prepare_bake_targets returns one bake step per image (inserted by the runner)
     add("bake", "bake_targets", "Bake-Ziele vorbereiten", baking.step_prepare_bake_targets, 0.5)
-    # one step per image is appended lazily by step_prepare_bake_targets via ctx.extra["bake_steps"]
-    add("bake", "bake_all", "Lightmaps backen", baking.step_bake_all, 10.0)
+    add("bake", "bake_finish", "Bake abschließen", baking.step_bake_finish, 0.5)
 
     add("save", "denoise", "Lightmaps entrauschen", images.step_denoise, 1.0)
     add("save", "save", "Lightmaps speichern", images.step_save_images, 1.0)
@@ -307,14 +307,22 @@ class SyncRunner:
         done = 0.0
         failed = False
         try:
-            for step in steps:
+            steps = list(steps)
+            i = 0
+            while i < len(steps):
+                step = steps[i]
                 ctx.check_cancel()
+                ctx.extra["current_step"] = step.name
                 ctx.report_progress(done / total, step.label)
                 log.info("--- %s", step.label)
                 t0 = time.perf_counter()
-                step.func(ctx)
+                new_steps = step.func(ctx)
                 ctx.result.timings[step.name] = ctx.result.timings.get(step.name, 0.0) + time.perf_counter() - t0
                 done += step.weight
+                if new_steps:
+                    steps[i + 1:i + 1] = list(new_steps)
+                    total += sum(s.weight for s in new_steps)
+                i += 1
             ctx.result.success = True
             ctx.report_progress(1.0, "Fertig")
         except PipelineCancelled as exc:
