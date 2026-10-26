@@ -1,0 +1,28 @@
+schema_version = "1.0.0"
+
+id = "blender_lightmap_export"
+version = "0.1.0"
+name = "Lightmap Exporter"
+tagline = "Bake Cycles lightmaps and export models with lightmap files"
+maintainer = "amank"
+type = "add-on"
+
+blender_version_min = "5.2.0"
+
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
+
+tags = ["Import-Export", "Render", "UV", "Bake"]
+
+website = "https://github.com/demcoderseinnachbar/BlenderLightMapExport"
+
+[permissions]
+files = "Read model files and write exported models and lightmap images"
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "*.pyc",
+  "/.git/",
+]

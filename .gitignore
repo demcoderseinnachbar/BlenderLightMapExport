@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+build/
+!build/.gitkeep
+*.log
+/export/
+/tmp/
+.vscode/
+.idea/
+Thumbs.db
