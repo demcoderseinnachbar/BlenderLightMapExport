@@ -1,0 +1,60 @@
+{
+  "input_file": "examples/teapot/utah_teapot.glb",
+  "output_dir": "export/teapot",
+  "preset": "MEDIUM",
+  "log_level": "INFO",
+  "uv": {
+    "method": "SMART_PROJECT",
+    "uv_name": "LightmapUV",
+    "island_margin_px": 8.0,
+    "angle_limit_deg": 66.0,
+    "area_weight": 0.0,
+    "rotate_method": "AXIS_ALIGNED",
+    "correct_aspect": true,
+    "validate": true,
+    "min_spacing_px": 1.0,
+    "lightmap_pack_box_div": 12
+  },
+  "bake": {
+    "type": "DIFFUSE_LIGHTING",
+    "resolution": 1024,
+    "samples": 64,
+    "margin_px": 12,
+    "margin_type": "EXTEND",
+    "device": "AUTO",
+    "denoise": true,
+    "use_direct": true,
+    "use_indirect": true,
+    "ao_distance": 0.0
+  },
+  "lighting": {
+    "mode": "AUTO",
+    "sun_energy": 3.0,
+    "sun_rotation_deg": [50.0, 0.0, 30.0],
+    "world_strength": 0.3,
+    "world_color": [0.8, 0.85, 1.0]
+  },
+  "atlas": {
+    "mode": "PER_OBJECT",
+    "atlas_name": "Atlas",
+    "texel_density_weighting": true
+  },
+  "image": {
+    "format": "PNG16",
+    "lightmap_subdir": "Lightmaps",
+    "always_use_subdir": false
+  },
+  "export": {
+    "format": "GLB",
+    "scope": "SCENE",
+    "overwrite": true,
+    "preserve_materials": true,
+    "apply_lightmap_preview": true,
+    "export_after_bake": true,
+    "reimport_check": true,
+    "obj_uv_strategy": "WARN_KEEP_ORIGINAL",
+    "gltf_lightmap_as_occlusion": false,
+    "base_name": "",
+    "write_sidecar": true
+  }
+}
