@@ -53,6 +53,11 @@ class UVSettings:
     correct_aspect: bool = True
     validate: bool = True
     min_spacing_px: float = 1.0
+    # With thousands of islands a pixel margin can consume the whole texture.
+    # When enabled the margin is reduced so that margins use at most
+    # ``max_margin_fraction`` of the texture side (a warning reports it).
+    auto_reduce_margin: bool = True
+    max_margin_fraction: float = 0.5
     # LIGHTMAP_PACK specific
     lightmap_pack_box_div: int = 12
 

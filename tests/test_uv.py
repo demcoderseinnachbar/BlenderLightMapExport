@@ -147,6 +147,26 @@ class UVTests(BlenderTestCase):
             ratios.append(ua / wa)
         self.assertLess(max(ratios) / min(ratios), 1.05, ratios)
 
+    def test_feasible_margin(self):
+        self.assertEqual(uv.feasible_margin_px(1, 1024, 8), 8)
+        self.assertEqual(uv.feasible_margin_px(16, 1024, 8), 8)          # 4 per row: max 64 px
+        self.assertAlmostEqual(uv.feasible_margin_px(10000, 1024, 8), 2.56)  # 100 per row
+        self.assertEqual(uv.feasible_margin_px(1000000, 256, 8), 0.5)
+
+    def test_many_islands_reduce_margin_with_warning(self):
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=5)  # 20k faces, many islands with 10 degree limit
+        obj = bpy.context.object
+        obj.data.materials.append(gen.material("M", (0.5, 0.5, 0.5, 1)))
+        cfg = quick_config(self.tmp, uv__angle_limit_deg=5.0, uv__island_margin_px=8, bake__resolution=256)
+        result = api.run_pipeline(cfg, objects=[obj], stages=["prepare", "uv"])
+        self.assertTrue(any("reduziert" in w for w in result.warnings), result.warnings)
+        rep = uv_validate.validate_layout([(obj.data, "LightmapUV")], 256, 0)
+        self.assertGreater(rep["coverage_fraction"], 0.05)
+        cfg.uv.auto_reduce_margin = False
+        obj.data.uv_layers.remove(obj.data.uv_layers["LightmapUV"])
+        result = api.run_pipeline(cfg, objects=[obj], stages=["prepare", "uv"])
+        self.assertFalse(any("reduziert" in w for w in result.warnings))
+
     def test_margin_conversion(self):
         self.assertAlmostEqual(uv.margin_uv_units(8, 1024), 8 / 1024)
         self.assertAlmostEqual(uv.lightmap_pack_margin(8, 1024), 8 / 1024 * 100)

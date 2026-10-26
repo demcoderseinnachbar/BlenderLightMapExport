@@ -1,0 +1,20 @@
+{
+  "name": "Toy Car",
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+  "authors": "Guido Odendahl (Modell), Eric Chadwick (Erweiterungen, Szene)",
+  "source_url": "https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/ToyCar",
+  "downloaded": "2026-10-26",
+  "files": {
+    "ToyCar.glb": {
+      "url": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/ToyCar/glTF-Binary/ToyCar.glb",
+      "sha256": "01a60862de55cd4b9f3acfab0b0def86451800f9c42467fcd61052c16cb9838c",
+      "bytes": 5422412
+    },
+    "ToyCar.metadata.json": {
+      "url": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/ToyCar/metadata.json",
+      "sha256": "4ccccf4f019521aea50d462a8b20b876478aca456ab6adde17cd8e4a53110b73",
+      "bytes": 1070
+    }
+  }
+}

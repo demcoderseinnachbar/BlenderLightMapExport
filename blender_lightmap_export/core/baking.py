@@ -381,5 +381,9 @@ def verify_bakes(ctx: PipelineContext) -> None:
         ctx.extra.setdefault("image_stats", {})[name] = stats
         if stats["max"] <= 0.0:
             ctx.warn(f"Lightmap '{name}' ist komplett schwarz, prüfe Beleuchtung und UVs")
+        elif stats["nonzero"] < 0.05:
+            ctx.warn(f"Lightmap '{name}': nur {stats['nonzero'] * 100:.1f} % der Pixel sind belegt. Zu viele kleine "
+                     f"UV-Inseln für {ctx.cfg.bake.resolution} px – Auflösung erhöhen, Island Margin verringern oder "
+                     f"Angle Limit erhöhen.")
         log.info("Lightmap '%s': Mittel %.4f, Max %.4f, belegt %.1f %%", name, stats["mean"], stats["max"],
                  stats["nonzero"] * 100)

@@ -4,8 +4,10 @@
 Margin semantics (documented and tested):
 
 * ``island_margin_px`` is converted to UV units as ``px / resolution``.
-* Smart UV Project and ``pack_islands`` use ``margin_method='ADD'`` – the
-  margin is an absolute distance in UV space, independent of island size.
+* Smart UV Project and ``pack_islands`` use ``margin_method='FRACTION'`` – the
+  margin is a fraction of the *final* 0..1 layout, so ``px / resolution`` really
+  is the pixel distance in the baked texture (with 'ADD' the margin would be
+  scaled down together with the layout when many islands are packed).
 * Lightmap Pack expresses the margin as a *percentage of the UV square*
   (``PREF_MARGIN_DIV``, 0.001..1.0 %). ``px / resolution * 100`` is clamped to
   that range, so with Lightmap Pack the maximum margin is 1 % of the texture.
@@ -62,6 +64,39 @@ def lightmap_pack_margin(px: float, resolution: int) -> float:
     return min(1.0, max(0.001, margin_uv_units(px, resolution) * 100.0))
 
 
+def count_islands(mesh: bpy.types.Mesh, uv_name: str) -> int:
+    from . import uv_validate
+    uvs, tris, pos = uv_validate._mesh_uv_triangles(mesh, uv_name)
+    if len(tris) == 0:
+        return 0
+    return int(uv_validate._island_ids(uvs, tris, pos).max())
+
+
+def feasible_margin_px(n_islands: int, resolution: int, requested_px: float, max_fraction: float = 0.5) -> float:
+    """Largest margin (px) so that island margins use at most ``max_fraction`` of the texture side.
+
+    Islands are assumed to be laid out roughly ``sqrt(n)`` per row, each
+    consuming ``2 * margin`` pixels of padding.
+    """
+    if n_islands <= 1 or requested_px <= 0:
+        return requested_px
+    per_row = math.sqrt(n_islands)
+    max_px = (resolution * max_fraction) / (2.0 * per_row)
+    return min(requested_px, max(0.5, max_px))
+
+
+def _margin_for(cfg_uv, n_islands: int, resolution: int, label: str, warn=None) -> float:
+    requested = cfg_uv.island_margin_px
+    if not cfg_uv.auto_reduce_margin:
+        return requested
+    applied = feasible_margin_px(n_islands, resolution, requested, cfg_uv.max_margin_fraction)
+    if applied < requested - 1e-6 and warn is not None:
+        warn(f"UVs '{label}': {n_islands} UV-Inseln – Island Margin von {requested:g} px auf {applied:.1f} px "
+             f"reduziert, sonst bliebe bei {resolution} px kaum Fläche für die Inseln. Abhilfe: Auflösung erhöhen, "
+             f"Angle Limit erhöhen (weniger Inseln), Lightmap Pack vermeiden oder uv.auto_reduce_margin=false.")
+    return applied
+
+
 # --- unwrapping ----------------------------------------------------------------------
 
 def _edit_mode(objects: List[bpy.types.Object]):
@@ -72,14 +107,16 @@ def _edit_mode(objects: List[bpy.types.Object]):
     bpy.ops.mesh.select_all(action="SELECT")
 
 
-def smart_project(obj: bpy.types.Object, uv_name: str, resolution: int, cfg_uv) -> None:
+def smart_project(obj: bpy.types.Object, uv_name: str, resolution: int, cfg_uv, margin_px: Optional[float] = None) -> None:
+    if margin_px is None:
+        margin_px = cfg_uv.island_margin_px
     obj.data.uv_layers.active = obj.data.uv_layers[uv_name]
     _edit_mode([obj])
     try:
         bpy.ops.uv.smart_project(
             angle_limit=math.radians(cfg_uv.angle_limit_deg),
-            margin_method="ADD",
-            island_margin=margin_uv_units(cfg_uv.island_margin_px, resolution),
+            margin_method="FRACTION",
+            island_margin=margin_uv_units(margin_px, resolution),
             rotate_method=cfg_uv.rotate_method,
             area_weight=cfg_uv.area_weight,
             correct_aspect=cfg_uv.correct_aspect,
@@ -89,7 +126,9 @@ def smart_project(obj: bpy.types.Object, uv_name: str, resolution: int, cfg_uv) 
         bpy.ops.object.mode_set(mode="OBJECT")
 
 
-def lightmap_pack(obj: bpy.types.Object, uv_name: str, resolution: int, cfg_uv) -> None:
+def lightmap_pack(obj: bpy.types.Object, uv_name: str, resolution: int, cfg_uv, margin_px: Optional[float] = None) -> None:
+    if margin_px is None:
+        margin_px = cfg_uv.island_margin_px
     obj.data.uv_layers.active = obj.data.uv_layers[uv_name]
     ensure_object_mode()
     select_only([obj], obj)
@@ -99,29 +138,41 @@ def lightmap_pack(obj: bpy.types.Object, uv_name: str, resolution: int, cfg_uv) 
         PREF_PACK_IN_ONE=True,
         PREF_NEW_UVLAYER=False,
         PREF_BOX_DIV=cfg_uv.lightmap_pack_box_div,
-        PREF_MARGIN_DIV=lightmap_pack_margin(cfg_uv.island_margin_px, resolution),
+        PREF_MARGIN_DIV=lightmap_pack_margin(margin_px, resolution),
     )
 
 
-def unwrap_object(obj: bpy.types.Object, cfg, resolution: int, product_tracker=None) -> bool:
-    """Create/choose the lightmap UV layer for ``obj``. Returns True if unwrapped."""
+def unwrap_object(obj: bpy.types.Object, cfg, resolution: int, product_tracker=None, warn=None,
+                  margin_px: Optional[float] = None) -> Optional[float]:
+    """Create/choose the lightmap UV layer for ``obj``.
+
+    Returns the applied island margin in pixels (None for EXISTING).
+    """
     uv_cfg = cfg.uv
     name = uv_cfg.uv_name
     if uv_cfg.method == "EXISTING":
         if name not in obj.data.uv_layers:
             raise LightmapExportError(
                 f"Objekt '{obj.name}' hat keinen UV-Layer '{name}' (Methode EXISTING)")
-        return False
+        return None
     layer, created = ensure_lightmap_uv(obj, name, product_tracker)
     if not created:
         log.info("UV-Layer '%s' von '%s' wird neu entfaltet", name, obj.name)
     if uv_cfg.method == "SMART_PROJECT":
-        smart_project(obj, name, resolution, uv_cfg)
+        if margin_px is None:
+            # pass 1 without margin to learn the island count, pass 2 with the feasible margin
+            smart_project(obj, name, resolution, uv_cfg, margin_px=0.0)
+            n = count_islands(obj.data, name)
+            margin_px = _margin_for(uv_cfg, n, resolution, obj.name, warn)
+            log.info("'%s': %d UV-Inseln, Island Margin %.2f px", obj.name, n, margin_px)
+        smart_project(obj, name, resolution, uv_cfg, margin_px=margin_px)
     elif uv_cfg.method == "LIGHTMAP_PACK":
-        lightmap_pack(obj, name, resolution, uv_cfg)
+        if margin_px is None:
+            margin_px = _margin_for(uv_cfg, len(obj.data.polygons), resolution, obj.name, warn)
+        lightmap_pack(obj, name, resolution, uv_cfg, margin_px=margin_px)
     else:
         raise LightmapExportError(f"Unbekannte UV-Methode {uv_cfg.method}")
-    return True
+    return margin_px
 
 
 # --- atlas packing ---------------------------------------------------------------------
@@ -197,7 +248,7 @@ def pack_atlas(objects: List[bpy.types.Object], uv_name: str, resolution: int, m
             rotate_method="CARDINAL",
             scale=True,
             merge_overlap=False,
-            margin_method="ADD",
+            margin_method="FRACTION",
             margin=margin_uv_units(margin_px, resolution),
             pin=False,
             shape_method="CONCAVE",
@@ -213,11 +264,15 @@ def step_create_lightmap_uvs(ctx: PipelineContext) -> None:
     res = cfg.bake.resolution
     name = cfg.uv.uv_name
     done_meshes = set()
+    applied: Dict[str, Optional[float]] = {}
+    shared_atlas = cfg.atlas.mode == "SHARED_ATLAS" and cfg.uv.method != "EXISTING"
     for o in ctx.objects:
         before = [u.name for u in o.data.uv_layers]
         if o.data.name in done_meshes:
             continue  # shared mesh data: unwrap once
-        unwrap_object(o, cfg, res, ctx.product)
+        # in atlas mode the per-object margin is irrelevant (pack_atlas applies the final margin)
+        applied[o.name] = unwrap_object(o, cfg, res, ctx.product, warn=None if shared_atlas else ctx.warn,
+                                        margin_px=0.0 if shared_atlas else None)
         done_meshes.add(o.data.name)
         after = [u.name for u in o.data.uv_layers]
         for b in before:
@@ -240,8 +295,14 @@ def step_create_lightmap_uvs(ctx: PipelineContext) -> None:
             if cfg.atlas.texel_density_weighting:
                 factors = prescale_for_texel_density(unique, name)
                 log.info("Texeldichte-Vorskalierung: %s", {k: round(v, 3) for k, v in factors.items()})
-            pack_atlas(unique, name, res, cfg.uv.island_margin_px)
+            n_total = sum(count_islands(o.data, name) for o in unique)
+            margin = _margin_for(cfg.uv, n_total, res, "Atlas", ctx.warn)
+            log.info("Atlas: %d UV-Inseln, Island Margin %.2f px", n_total, margin)
+            pack_atlas(unique, name, res, margin)
+            for o in unique:
+                applied[o.name] = margin
     ctx.extra["uv_name"] = name
+    ctx.extra["island_margin_applied_px"] = applied
     log.info("Lightmap-UV '%s' für %d Objekte bereit (Methode %s)", name, len(ctx.objects), cfg.uv.method)
 
 

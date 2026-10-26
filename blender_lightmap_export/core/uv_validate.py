@@ -24,7 +24,12 @@ log = get_logger("uv_validate")
 
 
 def _mesh_uv_triangles(mesh: bpy.types.Mesh, uv_name: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Return (uv per loop [n,2], triangle loop indices [m,3], vertex index per loop [n])."""
+    """Return (uv per loop [n,2], triangle loop indices [m,3], position id per loop [n]).
+
+    The position id merges vertices that sit at the same 3D location, so meshes
+    with split vertices (typical after glTF/FBX import) are treated like
+    connected geometry.
+    """
     layer = mesh.uv_layers[uv_name]
     n = len(mesh.loops)
     uv = np.empty(n * 2, dtype=np.float64)
@@ -35,7 +40,13 @@ def _mesh_uv_triangles(mesh: bpy.types.Mesh, uv_name: str) -> Tuple[np.ndarray, 
     mesh.loop_triangles.foreach_get("loops", tris)
     loop_verts = np.empty(n, dtype=np.int64)
     mesh.loops.foreach_get("vertex_index", loop_verts)
-    return uv, tris.reshape(-1, 3), loop_verts
+    co = np.empty(len(mesh.vertices) * 3, dtype=np.float64)
+    mesh.vertices.foreach_get("co", co)
+    co = co.reshape(-1, 3)
+    extent = float(np.abs(co).max()) if len(co) else 1.0
+    quant = max(extent, 1e-6) * 1e-6
+    pos_ids = np.unique(np.round(co / quant).astype(np.int64), axis=0, return_inverse=True)[1].ravel()
+    return uv, tris.reshape(-1, 3), pos_ids[loop_verts]
 
 
 def _island_ids(uv: np.ndarray, tris: np.ndarray, loop_verts: np.ndarray, quant: float = 1e-5) -> np.ndarray:
