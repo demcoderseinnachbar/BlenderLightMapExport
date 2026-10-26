@@ -52,7 +52,8 @@ Jeder Integrationstest durchläuft: Import → Prüfung vorhandener UVs → Ligh
 
 - Fehlgeschlagen: keine.
 - Übersprungen im Abschlusslauf: keine (GPU und Modelle vorhanden). Ohne GPU oder mit `--no-slow` werden die entsprechend markierten Tests als `skipped` ausgewiesen.
-- **Nicht verifiziert (nur manuell prüfbar, in dieser Umgebung ohne Fensterbetrieb nicht ausführbar):** modaler Ablauf in der Oberfläche (Fortschrittsbalken, Hintergrund-Bake über Blender-Job, Esc-Abbruch), Panel-Darstellung, Viewport-Anzeige der Vorschau, glTF-Import über den Dateidialog (der Hook selbst ist per Subprozess getestet). Checkliste in [testing.md](testing.md). Der blockierende Codepfad des Operators ist automatisch getestet; schlägt der Hintergrund-Bake in der Oberfläche fehl, kann er in den Preferences abgeschaltet werden.
+- **Automatisch in der Oberfläche verifiziert:** der modale Operator mit Hintergrund-Bake über den Blender-Job (`scripts/ui_smoke_test.py`, Blender mit Fenster, Ergebnis in `build/ui_smoke_report.json`): Bake, Speichern, Materialbindung, Export und das Umschalten des Viewports auf Material Preview.
+- **Nicht verifiziert (nur interaktiv prüfbar):** Esc-Abbruch während des Bakes, Fortschrittsanzeige in der Statusleiste, Panel-Darstellung, Viewport-Anzeige per Sichtkontrolle, glTF-Import über den Dateidialog (der Hook selbst ist per Subprozess getestet). Checkliste in [testing.md](testing.md). Schlägt der Hintergrund-Bake in der Oberfläche fehl, kann er in den Preferences abgeschaltet werden.
 
 ## 4. Bekannte Einschränkungen
 

@@ -24,6 +24,12 @@ class BLME_Preferences(bpy.types.AddonPreferences):
                     "Deaktivieren, falls der Hintergrund-Bake in der Oberfläche Probleme macht",
         default=True,
     )
+    switch_viewport_shading: BoolProperty(
+        name="Nach dem Bake Viewport auf Material Preview umschalten",
+        description="Im Solid-Shading sind Material-Nodes und damit die Lightmap nicht sichtbar. "
+                    "Schaltet 3D-Viewports, die auf Solid stehen, nach einem erfolgreichen Lauf auf Material Preview",
+        default=True,
+    )
     default_output_dir: StringProperty(
         name="Standard-Ausgabeverzeichnis", subtype="DIR_PATH", default="//export",
     )
@@ -32,6 +38,7 @@ class BLME_Preferences(bpy.types.AddonPreferences):
         layout = self.layout
         layout.prop(self, "auto_apply_on_gltf_import")
         layout.prop(self, "use_background_bake")
+        layout.prop(self, "switch_viewport_shading")
         layout.prop(self, "default_output_dir")
 
 

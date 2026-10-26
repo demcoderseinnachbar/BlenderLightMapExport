@@ -32,6 +32,8 @@ class UITests(BlenderTestCase):
             self.assertTrue(hasattr(bpy.types, idname), idname)
         self.assertTrue(hasattr(bpy.ops.blme, "run"))
         self.assertTrue(hasattr(bpy.ops.blme, "import_with_lightmaps"))
+        self.assertTrue(hasattr(bpy.ops.blme, "material_preview"))
+        self.assertEqual(bpy.ops.blme.material_preview(), {"FINISHED"})  # no 3D views headless
         self.pkg.unregister()
         self.assertFalse(hasattr(bpy.types, "BLME_PT_main"))
         self.pkg.register()

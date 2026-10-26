@@ -130,6 +130,13 @@ class BLME_PT_status(BLME_PT_base, bpy.types.Panel):
             box = layout.box()
             for line in s.last_summary.splitlines():
                 box.label(text=line)
+            shading = next((sp.shading.type for a in context.screen.areas if a.type == "VIEW_3D"
+                            for sp in a.spaces if sp.type == "VIEW_3D"), None)
+            if shading == "SOLID":
+                box.label(text="Solid-Shading zeigt keine Lightmap", icon="ERROR")
+                box.operator("blme.material_preview", icon="SHADING_TEXTURE")
+            else:
+                box.label(text="Sichtbar in Material Preview / Rendered", icon="SHADING_TEXTURE")
         if s.last_warnings:
             box = layout.box()
             box.label(text="Warnungen", icon="INFO")
@@ -159,6 +166,7 @@ class BLME_PT_tools(BLME_PT_base, bpy.types.Panel):
         op = col.operator("blme.apply_preview", text="Original anzeigen (Nodes bleiben)", icon="HIDE_ON")
         op.mode = "ORIGINAL"
         col.operator("blme.restore_materials", icon="LOOP_BACK")
+        col.operator("blme.material_preview", icon="SHADING_TEXTURE")
         layout.separator()
         layout.operator("blme.import_with_lightmaps", icon="IMPORT")
         layout.operator("blme.select_lightmapped", icon="RESTRICT_SELECT_OFF")

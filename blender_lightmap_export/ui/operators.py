@@ -47,6 +47,32 @@ def _store_result(settings, result, error: str = ""):
     settings.last_error = error
 
 
+def set_material_preview(context, only_solid: bool = True) -> int:
+    """Switch 3D viewports to Material Preview (Solid shading does not show node materials)."""
+    count = 0
+    wm = context.window_manager
+    for window in (wm.windows if wm else []):
+        for area in window.screen.areas:
+            if area.type != "VIEW_3D":
+                continue
+            for space in area.spaces:
+                if space.type != "VIEW_3D":
+                    continue
+                if space.shading.type == "SOLID" or (not only_solid and space.shading.type != "RENDERED"):
+                    space.shading.type = "MATERIAL"
+                    count += 1
+            area.tag_redraw()
+    return count
+
+
+def _after_success(context, settings, result):
+    prefs = get_prefs()
+    if result is not None and result.lightmaps and settings.apply_lightmap_preview and \
+            (prefs is None or prefs.switch_viewport_shading) and not bpy.app.background:
+        if set_material_preview(context):
+            settings.status_text = "Fertig – Viewport auf Material Preview umgeschaltet"
+
+
 # --- modal runner -----------------------------------------------------------------------
 
 class BLME_OT_run(bpy.types.Operator):
@@ -122,6 +148,7 @@ class BLME_OT_run(bpy.types.Operator):
             settings.is_running = False
         settings.status_text = "Fertig"
         _store_result(settings, result)
+        _after_success(context, settings, result)
         self.report({"INFO"}, f"{len(result.lightmaps)} Lightmap(s), {len(result.exported_files)} Datei(en)")
         return {"FINISHED"}
 
@@ -272,6 +299,8 @@ class BLME_OT_run(bpy.types.Operator):
             settings.progress = 1.0 if not failed else 0.0
             settings.status_text = "Fertig" if not failed else ("Abgebrochen" if cancelled else "Fehler")
             _store_result(settings, ctx.result, error)
+            if not failed:
+                _after_success(context, settings, ctx.result)
             _redraw_all()
         if failed:
             self.report({"WARNING" if cancelled else "ERROR"}, error)
@@ -402,6 +431,17 @@ class BLME_OT_open_output(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class BLME_OT_material_preview(bpy.types.Operator):
+    """Switch the 3D viewports to Material Preview so that the lightmap preview is visible"""
+    bl_idname = "blme.material_preview"
+    bl_label = "Viewport: Material Preview"
+
+    def execute(self, context):
+        n = set_material_preview(context, only_solid=False)
+        self.report({"INFO"}, f"{n} Viewport(s) umgeschaltet" if n else "Viewports stehen bereits auf Material Preview/Rendered")
+        return {"FINISHED"}
+
+
 class BLME_OT_select_lightmapped(bpy.types.Operator):
     """Select all objects that carry lightmap metadata"""
     bl_idname = "blme.select_lightmapped"
@@ -420,6 +460,7 @@ class BLME_OT_select_lightmapped(bpy.types.Operator):
 CLASSES = (
     BLME_OT_run, BLME_OT_apply_preview, BLME_OT_restore_materials, BLME_OT_import_with_lightmaps,
     BLME_OT_save_config, BLME_OT_load_config, BLME_OT_open_output, BLME_OT_select_lightmapped,
+    BLME_OT_material_preview,
 )
 
 
