@@ -34,14 +34,36 @@ NODE_GROUP = "BLME_Shader"
 PROP_RESTORE = "BLME_restore"
 PROP_ORIGINAL_MATERIAL = "BLME_original_material"
 BAKE_TYPE_VALUE = {"DIFFUSE_LIGHTING": 0.0, "COMBINED": 1.0, "AO": 2.0}
-MODE_VALUE = {"ORIGINAL": 0.0, "PREVIEW": 1.0, "BAKED_EXTERNAL": 1.0}
+# mode -> (Preview, Albedo): Preview 0 shows the original shader, Albedo 0 hides the base colour
+MODE_VALUE = {"ORIGINAL": 0.0, "PREVIEW": 1.0, "BAKED_EXTERNAL": 1.0, "LIGHTMAP_ONLY": 1.0}
+MODE_ALBEDO = {"ORIGINAL": 1.0, "PREVIEW": 1.0, "BAKED_EXTERNAL": 1.0, "LIGHTMAP_ONLY": 0.0}
 
 
 # --- node group --------------------------------------------------------------------
 
+def _upgrade_group(ng: bpy.types.ShaderNodeTree) -> None:
+    """Add the 'Albedo' input to groups created by older versions."""
+    names = [s.name for s in ng.interface.items_tree if s.item_type == "SOCKET" and s.in_out == "INPUT"]
+    if "Albedo" in names:
+        return
+    s = ng.interface.new_socket("Albedo", in_out="INPUT", socket_type="NodeSocketFloat")
+    s.default_value, s.min_value, s.max_value = 1.0, 0.0, 1.0
+    gin = next((n for n in ng.nodes if n.bl_idname == "NodeGroupInput"), None)
+    mul = next((n for n in ng.nodes if n.label == "BaseColor * Lightmap"), None)
+    if gin is None or mul is None:
+        return
+    alb = ng.nodes.new("ShaderNodeMix"); alb.data_type = "RGBA"; alb.blend_type = "MIX"
+    alb.label = "Albedo on/off"; alb.location = (mul.location.x - 250, mul.location.y + 150)
+    alb.inputs[6].default_value = (1.0, 1.0, 1.0, 1.0)
+    ng.links.new(gin.outputs["Albedo"], alb.inputs["Factor"])
+    ng.links.new(gin.outputs["Base Color"], alb.inputs[7])
+    ng.links.new(alb.outputs[2], mul.inputs[6])
+
+
 def ensure_group() -> bpy.types.ShaderNodeTree:
     ng = bpy.data.node_groups.get(GROUP_NAME)
     if ng is not None and ng.bl_idname == "ShaderNodeTree":
+        _upgrade_group(ng)
         return ng
     ng = bpy.data.node_groups.new(GROUP_NAME, "ShaderNodeTree")
     ng.use_fake_user = True
@@ -57,15 +79,24 @@ def ensure_group() -> bpy.types.ShaderNodeTree:
     s.default_value, s.min_value, s.max_value = 0.0, 0.0, 2.0
     s = iface.new_socket("Strength", in_out="INPUT", socket_type="NodeSocketFloat")
     s.default_value, s.min_value, s.max_value = 1.0, 0.0, 100.0
+    s = iface.new_socket("Albedo", in_out="INPUT", socket_type="NodeSocketFloat")
+    s.default_value, s.min_value, s.max_value = 1.0, 0.0, 1.0
     iface.new_socket("Shader", in_out="OUTPUT", socket_type="NodeSocketShader")
 
     n = ng.nodes
     gin = n.new("NodeGroupInput"); gin.location = (-900, 0)
     gout = n.new("NodeGroupOutput"); gout.location = (700, 0)
 
+    # Albedo = 0 -> white instead of the base colour (shows the pure lightmap)
+    alb = n.new("ShaderNodeMix"); alb.data_type = "RGBA"; alb.blend_type = "MIX"
+    alb.label = "Albedo on/off"; alb.location = (-750, 350)
+    alb.inputs[6].default_value = (1.0, 1.0, 1.0, 1.0)
+    ng.links.new(gin.outputs["Albedo"], alb.inputs["Factor"])
+    ng.links.new(gin.outputs["Base Color"], alb.inputs[7])
+
     mul = n.new("ShaderNodeMix"); mul.data_type = "RGBA"; mul.blend_type = "MULTIPLY"
     mul.inputs["Factor"].default_value = 1.0; mul.location = (-500, 200); mul.label = "BaseColor * Lightmap"
-    ng.links.new(gin.outputs["Base Color"], mul.inputs[6])
+    ng.links.new(alb.outputs[2], mul.inputs[6])
     ng.links.new(gin.outputs["Lightmap"], mul.inputs[7])
 
     emit_lit = n.new("ShaderNodeEmission"); emit_lit.location = (-200, 300); emit_lit.label = "Diffuse lighting"
@@ -136,6 +167,7 @@ def bind_material(mat: bpy.types.Material, image: bpy.types.Image, uv_name: str,
     out = _output_node(nt)
     if out is None:
         out = nt.nodes.new("ShaderNodeOutputMaterial")
+    ensure_group()  # also upgrades groups created by older versions
     group = nt.nodes.get(NODE_GROUP)
     fresh = group is None
     if fresh:
@@ -172,6 +204,8 @@ def bind_material(mat: bpy.types.Material, image: bpy.types.Image, uv_name: str,
         image.colorspace_settings.name = "Non-Color"
     group.inputs["Lightmap Type"].default_value = BAKE_TYPE_VALUE.get(bake_type, 0.0)
     group.inputs["Preview"].default_value = MODE_VALUE.get(mode, 1.0)
+    if "Albedo" in group.inputs:
+        group.inputs["Albedo"].default_value = MODE_ALBEDO.get(mode, 1.0)
     return fresh
 
 
@@ -182,7 +216,10 @@ def set_mode(mat: bpy.types.Material, mode: str) -> bool:
     group = nt.nodes.get(NODE_GROUP)
     if group is None:
         return False
+    ensure_group()
     group.inputs["Preview"].default_value = MODE_VALUE.get(mode, 1.0)
+    if "Albedo" in group.inputs:
+        group.inputs["Albedo"].default_value = MODE_ALBEDO.get(mode, 1.0)
     return True
 
 
@@ -336,7 +373,10 @@ def restore_objects(objects: Iterable[bpy.types.Object]) -> int:
 
 
 def apply_from_metadata(objects: Iterable[bpy.types.Object], mode: str = "PREVIEW") -> int:
-    """(Re)apply lightmaps from the ``BLME_lightmap`` custom property of each object."""
+    """(Re)apply lightmaps from the ``BLME_lightmap`` custom property of each object.
+
+    ``mode``: PREVIEW (Basisfarbe × Lightmap), LIGHTMAP_ONLY (nur Lightmap), ORIGINAL.
+    """
     from .metadata import read_object_metadata, resolve_lightmap_image
     by_image: Dict[str, List[bpy.types.Object]] = {}
     images: Dict[str, bpy.types.Image] = {}

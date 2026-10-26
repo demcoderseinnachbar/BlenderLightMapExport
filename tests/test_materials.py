@@ -47,10 +47,68 @@ class MaterialTests(BlenderTestCase):
         (obj,) = gen.cube()
         api.bake_lightmaps(quick_config(self.tmp), objects=[obj])
         mat = obj.material_slots[0].material
+        group = mat.node_tree.nodes[materials.NODE_GROUP]
         self.assertEqual(api.apply_lightmaps([obj], mode="ORIGINAL"), 1)
-        self.assertEqual(mat.node_tree.nodes[materials.NODE_GROUP].inputs["Preview"].default_value, 0.0)
+        self.assertEqual(group.inputs["Preview"].default_value, 0.0)
         api.apply_lightmaps([obj], mode="PREVIEW")
-        self.assertEqual(mat.node_tree.nodes[materials.NODE_GROUP].inputs["Preview"].default_value, 1.0)
+        self.assertEqual(group.inputs["Preview"].default_value, 1.0)
+        self.assertEqual(group.inputs["Albedo"].default_value, 1.0)
+        api.apply_lightmaps([obj], mode="LIGHTMAP_ONLY")
+        self.assertEqual(group.inputs["Preview"].default_value, 1.0)
+        self.assertEqual(group.inputs["Albedo"].default_value, 0.0)
+
+    def test_lightmap_only_ignores_base_colour(self):
+        """With Albedo=0 a dark base colour must not darken the preview.
+
+        Note: a *fully black* base colour gives a black diffuse lightmap in Cycles
+        (no diffuse closure to light), so a dark grey is used here.
+        """
+        (obj,) = gen.cube()
+        mat = obj.material_slots[0].material
+        mat.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.1, 0.1, 0.1, 1.0)
+        api.bake_lightmaps(quick_config(self.tmp, lighting__mode="DEFAULT_RIG"), objects=[obj])
+        sc = bpy.context.scene
+        cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam"))
+        sc.collection.objects.link(cam)
+        cam.location = (3, -3, 2.5)
+        cam.rotation_euler = (1.1, 0, 0.8)
+        sc.camera = cam
+        for o in sc.objects:
+            if o.type == "LIGHT":
+                o.hide_render = True
+        sc.world = None
+        sc.render.engine = "CYCLES"
+        sc.cycles.samples = 4
+        sc.render.resolution_x = sc.render.resolution_y = 48
+        sc.render.resolution_percentage = 100
+        sc.render.image_settings.file_format = "PNG"
+        sc.render.filepath = self.out("r.png")
+
+        def peak():
+            bpy.ops.render.render(write_still=True)
+            img = bpy.data.images.load(sc.render.filepath)
+            try:
+                return max(img.pixels[:][0::4])
+            finally:
+                bpy.data.images.remove(img)
+        api.apply_lightmaps([obj], mode="PREVIEW")
+        with_colour = peak()
+        api.apply_lightmaps([obj], mode="LIGHTMAP_ONLY")
+        only = peak()
+        self.assertGreater(only, 0.05, "Nur-Lightmap-Modus zeigt die Lightmap nicht")
+        self.assertGreater(only, with_colour * 3.0, (only, with_colour))
+
+    def test_old_group_is_upgraded(self):
+        ng = bpy.data.node_groups.new(materials.GROUP_NAME, "ShaderNodeTree")
+        bpy.data.node_groups.remove(ng)
+        (obj,) = gen.cube()
+        api.bake_lightmaps(quick_config(self.tmp), objects=[obj])
+        ng = bpy.data.node_groups[materials.GROUP_NAME]
+        sock = next(s for s in ng.interface.items_tree if s.item_type == "SOCKET" and s.name == "Albedo")
+        ng.interface.remove(sock)   # simulate a group created by an older version
+        self.assertTrue(api.apply_lightmaps([obj], mode="LIGHTMAP_ONLY"))
+        names = [s.name for s in ng.interface.items_tree if s.item_type == "SOCKET"]
+        self.assertIn("Albedo", names)
 
     def test_original_materials_context(self):
         (obj,) = gen.cube()

@@ -137,6 +137,13 @@ class BLME_PT_status(BLME_PT_base, bpy.types.Panel):
                 box.operator("blme.material_preview", icon="SHADING_TEXTURE")
             else:
                 box.label(text="Sichtbar in Material Preview / Rendered", icon="SHADING_TEXTURE")
+            row = box.row(align=True)
+            op = row.operator("blme.apply_preview", text="Nur Lightmap")
+            op.mode = "LIGHTMAP_ONLY"
+            op = row.operator("blme.apply_preview", text="Mit Farbe")
+            op.mode = "PREVIEW"
+            op = row.operator("blme.apply_preview", text="Original")
+            op.mode = "ORIGINAL"
         if s.last_warnings:
             box = layout.box()
             box.label(text="Warnungen", icon="INFO")
@@ -161,9 +168,12 @@ class BLME_PT_tools(BLME_PT_base, bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        op = col.operator("blme.apply_preview", text="Lightmap-Vorschau an", icon="HIDE_OFF")
+        col.label(text="Anzeige (ausgewählte Objekte):")
+        op = col.operator("blme.apply_preview", text="Nur Lightmap", icon="LIGHT_DATA")
+        op.mode = "LIGHTMAP_ONLY"
+        op = col.operator("blme.apply_preview", text="Lightmap × Materialfarbe", icon="HIDE_OFF")
         op.mode = "PREVIEW"
-        op = col.operator("blme.apply_preview", text="Original anzeigen (Nodes bleiben)", icon="HIDE_ON")
+        op = col.operator("blme.apply_preview", text="Original (Nodes bleiben)", icon="HIDE_ON")
         op.mode = "ORIGINAL"
         col.operator("blme.restore_materials", icon="LOOP_BACK")
         col.operator("blme.material_preview", icon="SHADING_TEXTURE")

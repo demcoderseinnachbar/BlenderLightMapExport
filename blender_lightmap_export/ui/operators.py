@@ -338,11 +338,15 @@ class BLME_OT_apply_preview(bpy.types.Operator):
     bl_label = "Lightmap-Vorschau anzeigen"
     bl_options = {"REGISTER", "UNDO"}
 
-    mode: EnumProperty(items=[("PREVIEW", "Vorschau", ""), ("ORIGINAL", "Original", "")], default="PREVIEW")
+    mode: EnumProperty(items=[("PREVIEW", "Lightmap × Farbe", "Basisfarbe multipliziert mit der Lightmap"),
+                              ("LIGHTMAP_ONLY", "Nur Lightmap", "Lightmap ohne Materialfarbe"),
+                              ("ORIGINAL", "Original", "Originalmaterial (Nodes bleiben erhalten)")],
+                       default="PREVIEW")
 
     def execute(self, context):
         objs = [o for o in context.selected_objects if o.type == "MESH"] or [o for o in context.scene.objects if o.type == "MESH"]
         n = api.apply_lightmaps(objs, mode=self.mode)
+        set_material_preview(context)
         if n == 0:
             self.report({"WARNING"}, "Keine Objekte mit Lightmap-Metadaten gefunden")
             return {"CANCELLED"}

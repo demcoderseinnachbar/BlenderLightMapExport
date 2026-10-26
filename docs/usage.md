@@ -33,7 +33,7 @@ Während eines Laufs zeigt das Panel einen Fortschrittsbalken mit dem aktuellen 
 
 ### Werkzeuge
 
-- *Lightmap-Vorschau an* / *Original anzeigen*: schaltet die Vorschau in den Materialien um (Nodes bleiben).
+- Anzeige der ausgewählten Objekte: *Nur Lightmap* (reine Beleuchtung ohne Materialfarbe, ideal zum Beurteilen des Bakes), *Lightmap × Materialfarbe* (Standard nach dem Bake), *Original (Nodes bleiben)*. Dieselben drei Schalter stehen im Status-Panel direkt nach dem Bake. Der Viewport wird dabei auf Material Preview gestellt, falls er auf Solid steht.
 - *Originalmaterialien wiederherstellen*: entfernt alle Vorschau-Nodes und stellt die ursprüngliche Verknüpfung zum Material Output wieder her.
 - *Mit Lightmaps importieren*: importiert GLB/glTF/FBX/USD/OBJ und weist Lightmaps zu (auch unter *File > Import > Modell mit Lightmaps*).
 - *Objekte mit Lightmap auswählen*.
@@ -57,6 +57,8 @@ Direkt Blenders `bake.margin`: Pixel, um die die gebackenen Inseln nach außen e
 | Diffuse Beleuchtung (Standard) | DIFFUSE, Pässe Direct + Indirect, ohne Color | Einstrahlende Beleuchtung ohne Albedo, linear, HDR | Vorschau: Emission = Basisfarbe × Lightmap. Extern: Albedo × Lightmap |
 | Combined | COMBINED | Vollständiges Shading | Vorschau: Emission = Lightmap |
 | AO | AO | Verdeckung 0..1 | Vorschau: Diffuse BSDF mit Basisfarbe × AO; glTF optional als Occlusion |
+
+Hinweis zu Cycles: Die Diffuse-Beleuchtung wird über die Diffuse-Komponente des Materials berechnet. Flächen mit **rein schwarzer** Basisfarbe oder ohne Diffuse-Anteil (Glas, reines Metall) ergeben dort eine schwarze Lightmap. Für ein materialunabhängiges Ergebnis vor dem Bake eine neutrale Basisfarbe verwenden.
 
 ### Texturformate und Farbraum
 
@@ -115,7 +117,7 @@ result = api.run_pipeline(cfg, objects=bpy.context.selected_objects, progress=la
 # Teilschritte
 api.bake_lightmaps(cfg, objects)       # UVs, Bake, Datei, Vorschau
 api.export_scene(cfg, objects)         # Export mit vorhandenen Lightmaps
-api.apply_lightmaps(objects, "PREVIEW")
+api.apply_lightmaps(objects, "PREVIEW")        # LIGHTMAP_ONLY | ORIGINAL
 api.restore_materials(objects)
 report = api.import_with_lightmaps("C:/Export/model.glb")
 ```
