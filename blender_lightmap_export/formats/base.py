@@ -79,6 +79,9 @@ class BaseExporter:
         """Import ``path`` and return the new objects."""
         raise NotImplementedError
 
+    def import_extensions(self) -> List[str]:
+        return [self.capabilities.extension]
+
 
 _REGISTRY: Dict[str, Type[BaseExporter]] = {}
 

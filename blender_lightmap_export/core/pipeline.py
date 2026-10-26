@@ -213,6 +213,8 @@ def build_steps(ctx: PipelineContext, stages: Optional[List[str]] = None) -> Lis
 
     if cfg.export.format != "NONE":
         exporter = get_exporter(cfg.export.format)
+        if "bake" not in stages:
+            add("export", "collect_lightmaps", "Vorhandene Lightmaps sammeln", metadata.step_collect_existing_lightmaps, 0.2)
         add("export", "export", f"Export als {cfg.export.format}", exporter.step_export, 3.0)
         add("export", "sidecar", "Sidecar-Datei schreiben", metadata.step_write_sidecar, 0.2)
         if cfg.export.reimport_check:
