@@ -111,8 +111,9 @@ def fetch(model_key: str, verify_only: bool = False) -> dict:
         print(f"[fetch_example_models] {model_key}: {rel} <- {url}")
         download(url, dest)
         result["files"][rel] = {"url": url, "sha256": sha256(dest), "bytes": os.path.getsize(dest)}
-    with open(source_path, "w", encoding="utf-8") as fh:
+    with open(source_path, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(result, fh, indent=2, ensure_ascii=False)
+        fh.write("\n")
     print(f"[fetch_example_models] {model_key}: {len(result['files'])} Dateien, SOURCE.json geschrieben")
     return result
 

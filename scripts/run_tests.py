@@ -87,7 +87,7 @@ def write_markdown(path, records, meta):
     import collections
     by_module = collections.OrderedDict()
     for r in records:
-        mod = r["id"].split(".")[0] if "." in r["id"] else r["id"]
+        mod = ".".join(r["id"].split(".")[:2]) if "." in r["id"] else r["id"]
         by_module.setdefault(mod, []).append(r)
     counts = collections.Counter(r["status"] for r in records)
     lines = ["# Testbericht", "",
@@ -102,15 +102,15 @@ def write_markdown(path, records, meta):
     for mod, recs in by_module.items():
         lines += [f"## {mod}", "", "| Test | Status | Sekunden | Hinweis |", "|---|---|---|---|"]
         for r in recs:
-            name = r["id"].split(".", 1)[1] if "." in r["id"] else r["id"]
+            name = ".".join(r["id"].split(".")[2:]) if r["id"].count(".") >= 2 else r["id"]
             detail = (r["detail"] or "").strip().splitlines()
             hint = detail[-1][:140] if detail else ""
             hint = hint.replace("|", "\\|")
             lines.append(f"| `{name}` | {r['status']} | {r['seconds']} | {hint} |")
         lines.append("")
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write("\n".join(lines))
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("\n".join(lines) + "\n")
 
 
 def main():
