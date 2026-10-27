@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Image statistics, saving (PNG/EXR, linear) and compositor based denoising."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Wavefront OBJ export.
 
 OBJ carries exactly one UV set (the mesh's active UV layer) and no custom

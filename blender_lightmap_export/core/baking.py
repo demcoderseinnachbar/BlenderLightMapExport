@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Cycles baking: device selection, bake targets per material slot, bake calls."""
 
 from __future__ import annotations

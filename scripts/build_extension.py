@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Build the installable extension ZIP and (optionally) verify it installs.
 
 Usage::
@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import zipfile
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 SOURCE_DIR = os.path.join(REPO_ROOT, "blender_lightmap_export")
@@ -36,7 +37,12 @@ def build(out_dir: str) -> str:
                   key=lambda f: os.path.getmtime(os.path.join(out_dir, f)))
     if not zips:
         raise SystemExit("Keine ZIP-Datei erzeugt")
-    return os.path.join(out_dir, zips[-1])
+    zip_path = os.path.join(out_dir, zips[-1])
+    # The license text lives in the repository root, outside the source dir.
+    with zipfile.ZipFile(zip_path, "a", zipfile.ZIP_DEFLATED) as zf:
+        if "LICENSE" not in zf.namelist():
+            zf.write(os.path.join(REPO_ROOT, "LICENSE"), "LICENSE")
+    return zip_path
 
 
 def is_installed() -> bool:

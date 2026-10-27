@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Light analysis and the temporary default light rig."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Download (or verify) the external example models.
 
 Works with plain Python 3 *or* inside Blender::

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """USD export via Blender's built-in USD exporter.
 
 Verified: UV layers are written as named primvars (``primvars:LightmapUV``),

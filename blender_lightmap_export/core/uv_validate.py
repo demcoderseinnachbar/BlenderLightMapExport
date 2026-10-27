@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Raster based UV layout validation (overlaps, bounds, NaN, island spacing).
 
 The layout is rasterised into a ``resolution x resolution`` grid. A pixel is

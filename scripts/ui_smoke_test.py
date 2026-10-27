@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """GUI smoke test: runs the modal *Bake & Export* operator in a real Blender window.
 
 Usage (opens a Blender window that closes itself after the run)::

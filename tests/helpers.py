@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Shared helpers for the Blender-internal unittest suite."""
 
 from __future__ import annotations

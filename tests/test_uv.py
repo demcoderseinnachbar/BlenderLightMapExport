@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """UV channel creation, unwrapping, validation and atlas packing."""
 
 import unittest

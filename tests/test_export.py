@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Export, reimport and automatic lightmap assignment for every format."""
 
 import json

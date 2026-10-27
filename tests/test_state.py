@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Tests for state snapshot/restore and temporary datablock tracking."""
 
 import unittest

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Generate the Utah Teapot mesh from the original Bezier patch data.
 
 Source data: ``examples/teapot/teapot_bezier.txt`` – the original non-rational

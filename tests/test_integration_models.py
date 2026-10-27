@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """End-to-end workflow with the three external example models.
 
 Steps per model (as required by the project brief):

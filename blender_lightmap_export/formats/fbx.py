@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """FBX export via the bundled io_scene_fbx add-on.
 
 Verified: both UV layers keep their names, custom properties survive

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Scene property group mirroring :class:`ExportConfig` for the UI."""
 
 from __future__ import annotations

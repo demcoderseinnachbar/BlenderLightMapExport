@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Cycles baking: files, resolution, content, lighting dependence, materials, atlas, devices."""
 
 import os

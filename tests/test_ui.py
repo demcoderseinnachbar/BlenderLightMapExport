@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Add-on registration, property/config conversion and operators (headless where possible)."""
 
 import os

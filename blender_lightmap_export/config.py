@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Configuration dataclasses shared by UI, Python API and batch processing.
 
 All settings are plain Python (no ``bpy`` dependency) so they can be loaded

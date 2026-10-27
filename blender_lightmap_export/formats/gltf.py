@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """glTF / GLB export via the bundled io_scene_gltf2 add-on.
 
 Facts (verified with Blender 5.2.3):

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Deterministic, file-system safe names for exported files."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Lightmap UV channel creation, unwrapping and atlas packing.
 
 Margin semantics (documented and tested):

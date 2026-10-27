@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """BlenderLightMapExport – Lightmap baking and export for Blender 5.2 LTS.
 
 The package works in two ways:

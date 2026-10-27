@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Pipeline: ordered steps executed by a synchronous (headless) or modal (UI) runner.
 
 Every entry point (UI operator, Python API, batch script) builds the same

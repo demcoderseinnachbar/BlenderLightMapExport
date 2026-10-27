@@ -3,7 +3,7 @@
 Blender-Add-on, Python-API und Windows-Batch zum Backen von Lightmaps mit Cycles und zum Export von Modellen mit separaten Lightmap-Dateien.
 
 - Zielversion: **Blender 5.2.3 LTS** (Windows)
-- Lizenz: GPL-3.0-or-later (Projektcode); Beispielmodelle haben eigene Lizenzen, siehe `examples/*/README.md`
+- Lizenz: MIT (Projektcode); Beispielmodelle haben eigene Lizenzen, siehe `examples/*/README.md`
 - Eine Kernimplementierung (`blender_lightmap_export/core`) für Add-on, API und Batch
 
 ## Was das System macht

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Hooks for the bundled glTF importer/exporter.
 
 The glTF add-on looks for ``glTF2ExportUserExtension`` / ``glTF2ImportUserExtension``

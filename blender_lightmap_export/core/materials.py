@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Lightmap material preview without touching the original node graph.
 
 For every material of a lightmapped object three nodes are added:

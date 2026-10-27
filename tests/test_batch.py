@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Batch processing: single file, folder, broken input, missing config, unsupported formats, exit codes.
 
 These tests start real Blender sub-processes (the same way start_export.bat does),

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Structured logging for console, log file and UI reports."""
 
 from __future__ import annotations

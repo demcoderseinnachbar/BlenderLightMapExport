@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Public Python API (export_lightmap convenience, overrides, result object)."""
 
 import json

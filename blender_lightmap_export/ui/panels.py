@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Sidebar panels (View3D > N > Lightmap Exporter)."""
 
 from __future__ import annotations

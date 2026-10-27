@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 """Lightmap metadata: custom properties on objects and the sidecar JSON file.
 
 The same information is stored twice so that it survives every export format
